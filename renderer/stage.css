@@ -1,0 +1,19 @@
+/* Prompter view (talent display + operator preview). */
+.pr-viewport { position: relative; overflow: hidden; background: #000; touch-action: none; cursor: ns-resize; --pr-cue: #ffd23f; --pr-marker: #5cc8ff; }
+.pr-frame { position: absolute; inset: 0; }
+.pr-stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+.pr-text { will-change: transform; font-weight: 600; word-wrap: break-word; overflow-wrap: break-word; padding-bottom: 0; }
+.pr-text p { margin: 0; min-height: 1lh; }
+.pr-text .pr-gap { height: .6em; min-height: 0; }
+.pr-text .pr-cue { color: var(--pr-cue); font-style: italic; font-weight: 500; }
+.pr-text .pr-marker { margin: .4em 0 .2em; font-size: .62em; line-height: 1.6; color: var(--pr-marker); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border-bottom: 2px solid currentColor; opacity: .9; }
+.pr-text .pr-marker:first-child { margin-top: 0; }
+
+.pr-guide { position: absolute; left: 0; right: 0; height: 0; display: flex; align-items: center; pointer-events: none; }
+.pr-guide .pr-line { flex: 1; height: 0; border-top: 1px dashed rgba(255, 255, 255, .22); }
+.pr-guide .pr-arrow { width: 0; height: 0; border-top: clamp(8px, 2.2vh, 26px) solid transparent; border-bottom: clamp(8px, 2.2vh, 26px) solid transparent; }
+.pr-guide .pr-arrow-l { border-left: clamp(12px, 3vh, 36px) solid #e5484d; }
+.pr-guide .pr-arrow-r { border-right: clamp(12px, 3vh, 36px) solid #e5484d; }
+
+.pr-end { position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%); padding: .2em .8em; border-radius: 6px; background: rgba(229, 72, 77, .85); color: #fff; font: 700 clamp(12px, 3vh, 34px) -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: .2em; pointer-events: none; }
+.pr-viewport .hidden { display: none !important; }

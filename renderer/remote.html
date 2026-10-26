@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Teleprompter Remote</title>
+  <style>
+    :root { color-scheme: dark; --bg: #121418; --bg2: #21252d; --line: #313744; --text: #e6e8ec; --text2: #9aa3b2; --go: #30a46c; --stop: #e5484d; --accent: #7c5cff; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; user-select: none; -webkit-user-select: none; }
+    main { max-width: 520px; margin: 0 auto; padding: 16px; display: grid; gap: 12px; }
+    h1 { margin: 0; font-size: 15px; color: var(--text2); font-weight: 600; display: flex; justify-content: space-between; }
+    #conn.off { color: var(--stop); }
+    .bar { height: 10px; background: var(--bg2); border-radius: 5px; overflow: hidden; }
+    .bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+    .info { display: flex; justify-content: space-between; color: var(--text2); font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    button { min-height: 64px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg2); color: var(--text); font: 600 18px inherit; font-family: inherit; }
+    button:active { filter: brightness(1.4); }
+    #play { grid-column: 1 / -1; min-height: 110px; font-size: 28px; background: var(--go); border-color: var(--go); color: #fff; }
+    #play.playing { background: var(--stop); border-color: var(--stop); }
+    .speed { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+    .speed b { font: 700 36px "SF Mono", Menlo, monospace; min-width: 110px; text-align: center; }
+    .speed small { display: block; text-align: center; color: var(--text2); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1><span id="name">Teleprompter</span><span id="conn">●</span></h1>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="info"><span id="pct">0%</span><span id="left">–</span></div>
+    <div class="grid"><button id="play" data-c="toggle">▶ Play</button></div>
+    <div class="speed">
+      <button data-c="slower">− Slower</button>
+      <div><b id="speed">0.0</b><small>speed</small></div>
+      <button data-c="faster">Faster ＋</button>
+    </div>
+    <div class="grid">
+      <button data-c="prev">⏪ Marker</button>
+      <button data-c="top">⏮ Top</button>
+      <button data-c="next">Marker ⏩</button>
+      <button data-c="jump" data-v="-500">▲ Back</button>
+      <button data-c="reverse">⇅ Reverse</button>
+      <button data-c="jump" data-v="+500">Ahead ▼</button>
+    </div>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    function show(st) {
+      $('conn').className = '';
+      $('name').textContent = st.name || 'Teleprompter';
+      $('bar').style.width = `${st.progress}%`;
+      $('pct').textContent = `${Math.round(st.progress)}%`;
+      $('left').textContent = st.speed > 0 ? `${st.remaining} left` : 'stopped';
+      $('speed').textContent = (st.speed < 0 ? '−' : '') + Math.abs(st.speed).toFixed(1);
+      $('play').classList.toggle('playing', st.playing);
+      $('play').textContent = st.playing ? '❚❚ Pause' : '▶ Play';
+    }
+    async function call(c, v) {
+      const q = new URLSearchParams({ c });
+      if (v != null) q.set('v', v);
+      try {
+        const r = await fetch(`/api/cmd?${q}`);
+        show((await r.json()).state);
+      } catch {
+        $('conn').className = 'off';
+      }
+    }
+    document.querySelectorAll('button[data-c]').forEach((b) => b.addEventListener('click', () => call(b.dataset.c, b.dataset.v)));
+    async function poll() {
+      try {
+        show(await (await fetch('/api/state')).json());
+      } catch {
+        $('conn').className = 'off';
+      }
+      setTimeout(poll, 700);
+    }
+    poll();
+  </script>
+</body>
+</html>

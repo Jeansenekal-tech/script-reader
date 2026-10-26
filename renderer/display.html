@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Teleprompter</title>
+  <link rel="stylesheet" href="stage.css">
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
+    body:hover { cursor: default; }
+    #view { position: absolute; inset: 0; }
+  </style>
+</head>
+<body>
+  <div id="view"></div>
+  <script type="module">
+    import { PrompterStage, handlePrompterKey } from './stage.js';
+
+    const api = window.prompter;
+    const stage = new PrompterStage(document.getElementById('view'), {
+      mirror: true,
+      onLayout: (l) => api.setLayout(l),
+      onScrub: (p) => api.setPosition(p),
+    });
+    const cfg = await api.getConfig();
+    stage.setConfig(cfg.settings, cfg.stageWidth);
+    stage.setScript(cfg.script.text);
+    stage.setTransport(cfg.transport);
+    api.onConfig((c) => stage.setConfig(c.settings, c.stageWidth));
+    api.onScript((s) => stage.setScript(s.text));
+    api.onTransport((t) => stage.setTransport(t));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') api.closeDisplay();
+      else handlePrompterKey(e, api, stage);
+    });
+  </script>
+</body>
+</html>
