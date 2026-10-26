@@ -1,0 +1,112 @@
+name: Build app
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    tags: ['v*']
+  pull_request:
+  # Actions → Build app → Run workflow → type a version (e.g. 1.0.1) to build
+  # the Mac and Windows installers and publish a GitHub Release.
+  # Leave the version empty for a test build.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version, e.g. 1.0.1 (empty = test build, no release)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  RELEASE_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.version }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: sudo apt-get update && sudo apt-get install -y xvfb
+      - run: npm ci
+      - run: npm i --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node test/engine-test.cjs
+      - run: node test/ui-test.mjs
+      - run: xvfb-run -a node test/electron-smoke.mjs
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15        # Apple Silicon
+            target: --mac --arm64
+            name: mac-arm64
+          - os: macos-15-intel  # Intel Mac
+            target: --mac --x64
+            name: mac-x64
+          - os: windows-latest
+            target: --win --x64
+            name: windows
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Use the release version as the app version
+        if: env.RELEASE_VERSION != ''
+        shell: bash
+        run: npm version --no-git-tag-version --allow-same-version "${RELEASE_VERSION#v}"
+      - name: Build installers
+        shell: bash
+        env:
+          MAC_CERT_P12_BASE64: ${{ secrets.MAC_CERT_P12_BASE64 }}
+          MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+        run: |
+          # Sign only when certificate secrets exist; otherwise build unsigned
+          # (scripts/adhoc-sign.cjs ad-hoc signs the Mac app so it launches).
+          if [ -n "$MAC_CERT_P12_BASE64" ]; then
+            export CSC_LINK="$MAC_CERT_P12_BASE64" CSC_KEY_PASSWORD="$MAC_CERT_PASSWORD"
+          else
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          npx electron-builder ${{ matrix.target }} --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Unique-AV-Teleprompter-${{ matrix.name }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.exe
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.version != '')
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - id: meta
+        run: echo "version=${RELEASE_VERSION#v}" >> "$GITHUB_OUTPUT"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.meta.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: Unique AV Teleprompter ${{ steps.meta.outputs.version }}
+          generate_release_notes: true
+          files: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.exe

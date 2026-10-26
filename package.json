@@ -1,0 +1,60 @@
+{
+  "name": "unique-av-teleprompter",
+  "productName": "Unique AV Teleprompter",
+  "version": "1.0.0",
+  "description": "Unique AV Teleprompter – reads a show script like a teleprompter: editor, smooth scrolling prompter display on any screen, mirror for glass, markers, clicker and phone remote.",
+  "main": "main.js",
+  "author": "Unique AV",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test": "node test/engine-test.cjs && node test/ui-test.mjs",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.uniqueav.teleprompter",
+    "productName": "Unique AV Teleprompter",
+    "copyright": "Copyright © Unique AV",
+    "files": [
+      "main.js",
+      "preload.js",
+      "main/**/*",
+      "renderer/**/*",
+      "package.json",
+      "build/icon.png"
+    ],
+    "fileAssociations": [
+      { "ext": ["txt", "md"], "name": "Script", "role": "Viewer", "rank": "Alternate" }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
+      "target": ["dmg", "zip"],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "artifactName": "Unique-AV-Teleprompter-${version}-${arch}.${ext}"
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": ["nsis"],
+      "artifactName": "Unique-AV-Teleprompter-${version}-Setup.${ext}"
+    },
+    "dmg": {
+      "title": "Unique AV Teleprompter"
+    },
+    "afterSign": "scripts/adhoc-sign.cjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Jeansenekal-tech/script-reader.git"
+  }
+}

@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Unique AV Teleprompter</title>
+  <link rel="stylesheet" href="stage.css">
+  <link rel="stylesheet" href="operator.css">
+</head>
+<body>
+  <header id="toolbar">
+    <div class="group">
+      <button class="btn" id="btnNew" title="New script">New</button>
+      <button class="btn" id="btnOpen" title="Open a .txt or .md script (or drop a file on the window)">Open…</button>
+      <button class="btn" id="btnSave" title="Save script (⌘S)">Save</button>
+      <button class="btn" id="btnSaveAs">Save As…</button>
+    </div>
+    <div class="title"><span id="scriptName">Untitled</span><span id="saveState" class="muted"></span></div>
+    <div class="group">
+      <select id="displaySelect" title="Screen for the prompter display"></select>
+      <button class="btn primary" id="btnDisplay" title="Show or hide the prompter on the selected screen (⌘D)">Show Display</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="editorPane">
+      <div class="pane-head">
+        <span>Script</span>
+        <span class="muted" id="wordCount"></span>
+        <button class="btn small" id="btnGoCursor" title="Scroll the prompter to the line with the text cursor (⌘J)">Go to cursor ⤵</button>
+      </div>
+      <textarea id="editor" spellcheck="true" placeholder="Type or paste your script here.&#10;&#10;# Lines starting with # are markers&#10;[Text in brackets is a cue]"></textarea>
+      <div class="hint"># Marker &nbsp;·&nbsp; [cue] &nbsp;·&nbsp; blank line = new paragraph</div>
+    </section>
+
+    <section id="previewPane">
+      <div class="pane-head">
+        <span>Preview</span>
+        <label class="check"><input type="checkbox" id="previewMirror"> Show mirrored</label>
+      </div>
+      <div id="previewWrap"><div id="preview"></div></div>
+
+      <div id="progress" title="Click to jump"><i></i></div>
+      <div id="timeRow">
+        <span id="pctLabel">0%</span>
+        <span id="remainLabel" title="Time left at the current speed">–</span>
+      </div>
+
+      <div id="transport">
+        <button class="btn icon" id="btnTop" title="Back to top (Home)">⏮</button>
+        <button class="btn icon" id="btnPrev" title="Previous marker (←)">⏪</button>
+        <button class="btn play" id="btnPlay" title="Play / pause (Space)">▶ Play</button>
+        <button class="btn icon" id="btnNext" title="Next marker (→)">⏩</button>
+        <button class="btn icon" id="btnReverse" title="Reverse direction (R)">⇅</button>
+        <div class="speed">
+          <button class="btn icon" id="btnSlower" title="Slower (↑)">−</button>
+          <div class="speed-read"><b id="speedLabel">4.0</b><span>speed</span></div>
+          <button class="btn icon" id="btnFaster" title="Faster (↓)">＋</button>
+        </div>
+        <input type="range" id="speedRange" min="-30" max="30" step="0.5" title="Scroll speed (negative scrolls back)">
+      </div>
+
+      <div id="lower">
+        <div id="markersBox">
+          <div class="pane-head"><span>Markers</span></div>
+          <ol id="markers"></ol>
+        </div>
+        <div id="settingsBox">
+          <div class="pane-head"><span>Display settings</span></div>
+          <div class="grid" id="settings">
+            <label>Text size</label><div class="row"><input type="range" data-k="fontSize" min="24" max="220" step="1"><output data-for="fontSize"></output></div>
+            <label>Line spacing</label><div class="row"><input type="range" data-k="lineHeight" min="1" max="2.5" step="0.05"><output data-for="lineHeight"></output></div>
+            <label>Side margins</label><div class="row"><input type="range" data-k="margin" min="0" max="35" step="1"><output data-for="margin" data-unit="%"></output></div>
+            <label>Reading line</label><div class="row"><input type="range" data-k="guide" min="10" max="80" step="1"><output data-for="guide" data-unit="%"></output></div>
+            <label>Font</label>
+            <div class="row">
+              <select data-k="fontFamily">
+                <option value="system">System</option><option value="sans">Helvetica</option><option value="serif">Serif</option>
+                <option value="rounded">Rounded</option><option value="condensed">Condensed</option><option value="mono">Monospace</option>
+              </select>
+              <select data-k="align"><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option><option value="justify">Justify</option></select>
+            </div>
+            <label>Colours</label>
+            <div class="row colours">
+              <span title="Text"><input type="color" data-k="textColor"> Text</span>
+              <span title="Cues in [brackets]"><input type="color" data-k="cueColor"> Cue</span>
+              <span title="Markers"><input type="color" data-k="markerColor"> Marker</span>
+              <span title="Background"><input type="color" data-k="bgColor"> Back</span>
+            </div>
+            <label>Display</label>
+            <div class="row wrap">
+              <label class="check"><input type="checkbox" data-k="mirror"> Mirror (glass)</label>
+              <label class="check"><input type="checkbox" data-k="flip"> Flip vertical</label>
+              <label class="check"><input type="checkbox" data-k="uppercase"> UPPERCASE</label>
+              <label class="check"><input type="checkbox" data-k="guideVisible"> Reading line</label>
+              <label class="check"><input type="checkbox" data-k="displayWindowed"> In a window</label>
+            </div>
+            <label>Start speed</label><div class="row"><input type="range" data-k="defaultSpeed" min="0.5" max="20" step="0.5"><output data-for="defaultSpeed"></output></div>
+            <label>Phone remote</label>
+            <div class="row wrap">
+              <label class="check" title="Control the prompter from a phone or tablet on the same Wi-Fi"><input type="checkbox" data-k="remoteEnabled"> On</label>
+              <label class="check">Port <input type="number" data-k="remotePort" min="1024" max="65535" class="port"></label>
+              <span id="remoteInfo" class="muted">Off</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="dropHint" class="hidden">Drop a text file to open it</div>
+  <script type="module" src="operator.js"></script>
+</body>
+</html>
