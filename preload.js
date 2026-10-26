@@ -22,6 +22,9 @@ contextBridge.exposeInMainWorld('prompter', {
   toggleDisplay: invoke('display:toggle'),
   closeDisplay: invoke('display:close'),
   remoteStatus: invoke('remote:status'),
+  updateStatus: invoke('update:status'),
+  checkForUpdates: invoke('update:check'),
+  installUpdate: invoke('update:install'),
   pathForFile: (file) => {
     try {
       return webUtils.getPathForFile(file);
@@ -36,4 +39,5 @@ contextBridge.exposeInMainWorld('prompter', {
   onDisplaysChanged: on('displays:changed'),
   onRemote: on('remote'),
   onMenu: on('menu'),
+  onUpdate: on('update'),
 });

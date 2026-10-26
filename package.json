@@ -10,7 +10,8 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "test": "node test/engine-test.cjs && node test/ui-test.mjs",
+    "test": "node test/engine-test.cjs && node test/updater-test.mjs && node test/ui-test.mjs",
+    "manifest": "node scripts/make-update-manifest.mjs dist",
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win"
   },
@@ -53,6 +54,7 @@
     },
     "afterSign": "scripts/adhoc-sign.cjs"
   },
+  "updateUrl": "https://github.com/Jeansenekal-tech/script-reader/releases/latest/download",
   "repository": {
     "type": "git",
     "url": "https://github.com/Jeansenekal-tech/script-reader.git"

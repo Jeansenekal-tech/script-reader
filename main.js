@@ -7,6 +7,8 @@ const fs = require('fs');
 const { pathToFileURL } = require('url');
 const { PrompterEngine } = require('./main/engine');
 const { RemoteServer } = require('./main/remote');
+const { Updater } = require('./main/updater');
+const pkg = require('./package.json');
 
 const APP_NAME = 'Unique AV Teleprompter';
 const IS_MAC = process.platform === 'darwin';
@@ -25,6 +27,7 @@ protocol.registerSchemesAsPrivileged([{ scheme: SCHEME, privileges: { standard: 
 
 let engine = null;
 let remote = null;
+let updater = null;
 let operator = null;
 let display = null;
 let placedKey = '';
@@ -76,6 +79,47 @@ function applyRemote() {
   } else if (remote.port !== null) remote.stop();
   // listen() reports a busy port asynchronously.
   setTimeout(() => sendOperator('pr:remote', remote.status), 300);
+}
+
+// ---------------------------------------------------------------- updates
+async function checkForUpdates(manual) {
+  const st = await updater.check(manual);
+  if (!manual) return st;
+  const opts = { type: 'info', buttons: ['OK'], message: '' };
+  if (st.status === 'uptodate') opts.message = `You have the latest version (${st.current}).`;
+  else if (st.status === 'error') Object.assign(opts, { type: 'warning', message: 'Couldn’t check for updates.', detail: st.error });
+  else if (st.status === 'available') {
+    Object.assign(opts, { message: `Version ${st.latest} is available.`, detail: 'Download it from the releases page.', buttons: ['Open Releases Page', 'Later'] });
+    const { response } = await dialog.showMessageBox(parentWin(), opts);
+    if (response === 0) updater.openReleasePage();
+    return st;
+  } else if (st.status === 'ready') return promptInstall();
+  else return st;
+  await dialog.showMessageBox(parentWin(), opts);
+  return st;
+}
+
+// Never restarts during a show: ask, and refuse while the prompter scrolls.
+async function promptInstall() {
+  const st = updater.status();
+  if (st.status !== 'ready') return st;
+  const { response } = await dialog.showMessageBox(parentWin(), {
+    type: 'info',
+    buttons: ['Restart Now', 'Later'],
+    defaultId: 0,
+    cancelId: 1,
+    message: `Version ${st.latest} is ready to install.`,
+    detail: `${st.notes ? `${st.notes}\n\n` : ''}The app restarts to finish. If you choose Later, the update installs the next time you quit.`,
+  });
+  if (response !== 0) return st;
+  const r = updater.install({ relaunch: true });
+  if (!r.ok) {
+    dialog.showMessageBox(parentWin(), { type: 'warning', message: 'Couldn’t install the update.', detail: r.message });
+    return updater.status();
+  }
+  quitting = true;
+  setTimeout(() => app.quit(), 200);
+  return updater.status();
 }
 
 // --------------------------------------------------------------- displays
@@ -264,13 +308,32 @@ function registerIpc() {
   h('display:toggle', () => toggleDisplay());
   h('display:close', () => closeDisplay());
   h('remote:status', () => remote.status);
+  h('update:status', () => updater.status());
+  h('update:check', () => checkForUpdates(true));
+  h('update:install', () => promptInstall());
 }
 
 // -------------------------------------------------------------------- menu
 function buildMenu() {
   const cmd = (c, v) => () => engine.perform(c, v);
   const template = [
-    ...(IS_MAC ? [{ role: 'appMenu' }] : []),
+    ...(IS_MAC
+      ? [{
+        label: APP_NAME,
+        submenu: [
+          { role: 'about' },
+          { label: 'Check for Updates…', click: () => checkForUpdates(true) },
+          { type: 'separator' },
+          { role: 'services' },
+          { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideOthers' },
+          { role: 'unhide' },
+          { type: 'separator' },
+          { role: 'quit' },
+        ],
+      }]
+      : []),
     {
       label: 'File',
       submenu: [
@@ -307,6 +370,7 @@ function buildMenu() {
     },
     { label: 'View', submenu: [{ role: 'reload' }, { role: 'toggleDevTools' }, { type: 'separator' }, { role: 'togglefullscreen' }] },
     { role: 'windowMenu' },
+    ...(IS_MAC ? [] : [{ role: 'help', submenu: [{ label: 'Check for Updates…', click: () => checkForUpdates(true) }, { role: 'about' }] }]),
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
@@ -340,10 +404,17 @@ app.whenReady().then(() => {
   engine = new PrompterEngine(loadState());
   remote = new RemoteServer({ state: () => engine.snapshot(), command: (c, v) => engine.perform(c, v) });
   engine.on('transport', (t) => broadcast('pr:transport', t));
+  updater = new Updater({
+    defaultUrl: process.env.PROMPTER_UPDATE_URL || pkg.updateUrl || '',
+    send: (st) => sendOperator('pr:update', st),
+    isBusy: () => engine.playing,
+    log: (msg) => console.log(msg),
+  });
   engine.on('config', () => {
     broadcast('pr:config', engine.getConfig());
     placeDisplay();
     applyRemote();
+    if (updater.config.auto !== engine.settings.autoUpdate) updater.configure({ auto: engine.settings.autoUpdate });
     scheduleSave();
   });
   engine.on('script', () => {
@@ -352,6 +423,7 @@ app.whenReady().then(() => {
   });
   setInterval(() => engine.tick(), 100);
   applyRemote();
+  updater.configure({ auto: engine.settings.autoUpdate });
 
   const onDisplays = () => {
     placedKey = '';
@@ -382,6 +454,8 @@ app.on('before-quit', () => {
   quitting = true;
   saveNow();
   remote?.stop();
+  // A downloaded update installs when the app quits (no relaunch).
+  if (updater?.state.status === 'ready' && !updater.installing) updater.install({ relaunch: false, force: true });
 });
 
 app.on('window-all-closed', () => {

@@ -15,6 +15,7 @@
       <button class="btn" id="btnSaveAs">Save As…</button>
     </div>
     <div class="title"><span id="scriptName">Untitled</span><span id="saveState" class="muted"></span></div>
+    <button class="pill update hidden" id="updatePill"></button>
     <div class="group">
       <select id="displaySelect" title="Screen for the prompter display"></select>
       <button class="btn primary" id="btnDisplay" title="Show or hide the prompter on the selected screen (⌘D)">Show Display</button>
@@ -100,6 +101,12 @@
               <label class="check" title="Control the prompter from a phone or tablet on the same Wi-Fi"><input type="checkbox" data-k="remoteEnabled"> On</label>
               <label class="check">Port <input type="number" data-k="remotePort" min="1024" max="65535" class="port"></label>
               <span id="remoteInfo" class="muted">Off</span>
+            </div>
+            <label>Updates</label>
+            <div class="row wrap">
+              <label class="check"><input type="checkbox" data-k="autoUpdate"> Check automatically</label>
+              <button class="btn small" id="btnCheckUpdates">Check now</button>
+              <span id="updateInfo" class="muted"></span>
             </div>
           </div>
         </div>

@@ -58,6 +58,9 @@ async function openPage(file, viewport) {
     toggleDisplay: () => ({ open: true }),
     closeDisplay: () => ({ open: false }),
     remoteStatus: () => ({ running: false, urls: [] }),
+    updateStatus: () => ({ status: 'idle', current: '1.0.0' }),
+    checkForUpdates: () => null,
+    installUpdate: () => null,
   };
   for (const [name, fn] of Object.entries(calls)) await page.exposeFunction(`__${name}`, async (...a) => JSON.parse(JSON.stringify((await fn(...a)) ?? null)));
   await page.addInitScript((names) => {
@@ -68,7 +71,7 @@ async function openPage(file, viewport) {
     for (const n of names) window.prompter[n] = (...a) => window[`__${n}`](...a);
     Object.assign(window.prompter, {
       onTransport: on('transport'), onConfig: on('config'), onScript: on('script'), onDisplayState: on('display:state'),
-      onDisplaysChanged: on('displays:changed'), onRemote: on('remote'), onMenu: on('menu'),
+      onDisplaysChanged: on('displays:changed'), onRemote: on('remote'), onMenu: on('menu'), onUpdate: on('update'),
     });
   }, Object.keys(calls));
   pages.push(page);
@@ -151,6 +154,12 @@ await op.waitForTimeout(800);
 check(!engine.playing && engine.ended, 'stops at the end of the script');
 await disp.waitForTimeout(100);
 check(await disp.locator('.pr-end').isVisible(), 'display shows END');
+
+// Update pill: hidden until an update is downloading or ready.
+check(await op.locator('#updatePill').isHidden(), 'no update pill when up to date');
+await emit('update', { status: 'ready', current: '1.0.0', latest: '1.1.0' });
+check((await op.textContent('#updatePill')) === 'Restart to update to 1.1.0', 'update pill offers the restart');
+check((await op.textContent('#updateInfo')).includes('1.1.0'), 'settings show the downloaded version');
 
 await op.screenshot({ path: path.join(out, 'operator.png') });
 await disp.screenshot({ path: path.join(out, 'display.png') });

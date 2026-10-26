@@ -36,6 +36,7 @@ const DEFAULT_SETTINGS = {
   displayWindowed: false,
   remoteEnabled: false, // phone / tablet remote over the local network
   remotePort: 8090,
+  autoUpdate: true,
 };
 
 const DEFAULT_SCRIPT = `# Welcome
@@ -77,7 +78,7 @@ function normaliseSettings(s = {}) {
   out.speedStep = clamp(Number(out.speedStep) || 0.5, 0.1, 5);
   if (!['left', 'center', 'right', 'justify'].includes(out.align)) out.align = 'left';
   out.remotePort = Math.round(clamp(Number(out.remotePort) || 8090, 1024, 65535));
-  for (const k of ['uppercase', 'mirror', 'flip', 'guideVisible', 'displayWindowed', 'remoteEnabled']) out[k] = !!out[k];
+  for (const k of ['uppercase', 'mirror', 'flip', 'guideVisible', 'displayWindowed', 'remoteEnabled', 'autoUpdate']) out[k] = !!out[k];
   return out;
 }
 

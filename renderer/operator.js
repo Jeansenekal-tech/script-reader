@@ -250,6 +250,29 @@ function showRemote(st) {
   el.classList.toggle('err', !!st.error);
 }
 
+// ---------------------------------------------------------------- updates
+function showUpdate(st) {
+  const pill = $('#updatePill');
+  const info = $('#updateInfo');
+  const pct = Math.round((st.progress || 0) * 100);
+  pill.classList.toggle('hidden', !['downloading', 'ready'].includes(st.status));
+  pill.classList.toggle('ready', st.status === 'ready');
+  pill.textContent = st.status === 'ready' ? `Restart to update to ${st.latest}` : `Downloading update ${pct}%`;
+  const text = {
+    checking: 'Checking…',
+    uptodate: `Up to date (${st.current})`,
+    available: `Version ${st.latest} available`,
+    downloading: `Downloading ${st.latest}… ${pct}%`,
+    ready: `Version ${st.latest} ready – restart to install`,
+    installing: 'Installing…',
+    error: 'Last check failed',
+  }[st.status];
+  info.textContent = text || `Version ${st.current}`;
+  info.title = st.error || '';
+}
+$('#updatePill').onclick = () => api.installUpdate();
+$('#btnCheckUpdates').onclick = () => api.checkForUpdates();
+
 // --------------------------------------------------------------- keyboard
 document.addEventListener('keydown', (e) => {
   // Escape leaves the editor so the transport keys work.
@@ -287,6 +310,8 @@ api.onDisplayState((s) => showDisplayState(s.open));
 api.onDisplaysChanged(refreshDisplays);
 api.onRemote(showRemote);
 api.remoteStatus().then(showRemote);
+api.onUpdate(showUpdate);
+api.updateStatus().then(showUpdate);
 api.onMenu((what) => {
   if (what === 'save') save(false);
   else if (what === 'saveAs') save(true);

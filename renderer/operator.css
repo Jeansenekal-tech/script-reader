@@ -31,6 +31,10 @@ body { display: grid; grid-template-rows: 48px 1fr; }
 .btn { background: var(--bg3); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 12px; cursor: pointer; white-space: nowrap; }
 .btn:hover { background: var(--bg4); }
 .btn:active { transform: translateY(1px); }
+.pill { border: 0; border-radius: 99px; padding: 4px 11px; font: 600 12px var(--font); cursor: pointer; white-space: nowrap; }
+.pill.update { background: var(--bg4); color: var(--text); }
+.pill.update.ready { background: var(--go); color: #fff; animation: pulse 2s infinite; }
+@keyframes pulse { 50% { opacity: .7; } }
 .btn.small { padding: 3px 8px; font-size: 12px; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn.primary.on { background: var(--go); border-color: var(--go); }

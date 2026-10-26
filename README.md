@@ -20,6 +20,11 @@
 * **Clickers and foot pedals.** Presentation clickers that send Page Up/Page Down, arrow keys or Space work out of the box.
 * **Phone remote.** Turn on **Phone remote** in the display settings and open the address shown on a phone or tablet on the same Wi-Fi. You get big Play/Pause, speed, marker and jump buttons.
 * **Open With.** On a Mac, you can open a text file in the app from Finder (*Open With → Unique AV Teleprompter*).
+* **Automatic updates.** The app checks for a new version shortly after it starts and then every 4 hours, and downloads it in the background.
+  * It **never restarts during a show**. A green *Restart to update* button appears in the toolbar instead, and it won't install while the prompter is scrolling.
+  * If you ignore it, the update installs the next time you quit.
+  * Every download is checked against its SHA-512 checksum before it is installed.
+  * You can turn automatic checks off, or check now, under *Display settings → Updates*. *Check for Updates…* is also in the app menu on a Mac and the Help menu on Windows.
 
 ## Script format
 
@@ -113,14 +118,25 @@ npm run dist:mac     # .dmg + .zip into dist/ (on a Mac)
 npm run dist:win     # .exe installer into dist/ (on Windows)
 ```
 
-### Publishing a release
+### Publishing a release (and auto-updates)
 
-On GitHub, go to **Actions → Build app → Run workflow**, type a version such as `1.0.1`, and click **Run workflow**. It builds the Mac (Apple Silicon and Intel) and Windows installers and publishes them as a GitHub Release. Pushing a `v*` tag does the same thing. To sign the Mac app, add the `MAC_CERT_P12_BASE64` and `MAC_CERT_PASSWORD` repository secrets.
+On GitHub, go to **Actions → Build app → Run workflow**. Type a version such as `1.0.1` (higher than the last one) and, optionally, what's new, then click **Run workflow**. In a few minutes it:
+1. Builds the Mac (Apple Silicon and Intel) and Windows installers with that version number.
+2. Publishes a GitHub Release containing them and an `update.json` manifest, which lists each package with its size and SHA-512 checksum.
+
+Installed copies find the new version within 4 hours, or straight away with *Check for Updates…*. Pushing a `v*` tag does the same thing. To sign the Mac app, add the `MAC_CERT_P12_BASE64` and `MAC_CERT_PASSWORD` repository secrets.
+
+How updates install:
+* **Mac:** the app downloads the `.zip` for its architecture, verifies it, and swaps the app in place after quitting. This works for signed and unsigned builds alike. The app must be in a folder it can write to, such as Applications. If it is run from the disk image or another read-only location, the app opens the new `.dmg` in the browser instead.
+* **Windows:** the app downloads the Setup `.exe`, verifies it, and runs it silently after quitting.
+
+The app looks for releases at `updateUrl` in `package.json`, which points to this repository's latest release. Updates only work while the repository is public, because GitHub doesn't serve release files from private repositories without signing in.
 
 ### Tests
 
 ```sh
 node test/engine-test.cjs                  # scroll engine logic
+node test/updater-test.mjs                 # versions, update.json, verified download against a local server
 node test/ui-test.mjs                      # operator + display pages in headless Chromium (needs playwright)
 xvfb-run -a node test/electron-smoke.mjs   # the full app: windows, file open, phone remote, saving
 ```
@@ -131,6 +147,8 @@ xvfb-run -a node test/electron-smoke.mjs   # the full app: windows, file open, p
 main.js              Electron main: windows, display placement, menus, file open/save, IPC
 main/engine.js       Script, settings and scroll transport (no Electron; unit-tested)
 main/remote.js       Phone remote page + HTTP API
+main/updater.js      Auto-update (manifest check, verified download, install on quit)
+scripts/             update.json generator, ad-hoc Mac signing hook
 preload.js           window.prompter bridge for the operator and display windows
 renderer/stage.js    Shared prompter view: script → layout, scrolling, mirror, reading line
 renderer/operator.*  Operator window: editor, preview, transport, settings

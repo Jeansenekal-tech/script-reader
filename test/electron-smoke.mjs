@@ -23,7 +23,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const app = await electron.launch({
   executablePath: require('electron'),
   args: [appDir, '--no-sandbox', scriptFile],
-  env: { ...process.env, PROMPTER_USER_DATA: profile },
+  env: { ...process.env, PROMPTER_USER_DATA: profile, PROMPTER_UPDATE_URL: 'http://127.0.0.1:9/none' },
 });
 const errors = [];
 const op = await app.firstWindow();
@@ -62,6 +62,11 @@ const r = await fetch(`http://127.0.0.1:${port}/api/cmd?c=speed&v=7`).then((x) =
 check(r.ok && r.state.speed === 7, 'remote API sets the speed');
 check((await op.textContent('#speedLabel')) === '7.0', 'operator shows the new speed');
 check(/127\.0\.0\.1|\d+\.\d+\.\d+\.\d+|Port/.test(await op.textContent('#remoteInfo')), 'operator shows the remote address');
+
+// Auto-update: on by default; running from source it only reports status.
+check(await op.locator('#settings [data-k="autoUpdate"]').isChecked(), 'automatic update checks are on by default');
+const up = await op.evaluate(() => window.prompter.updateStatus());
+check(up.supported === false && up.auto === true && /^\d+\.\d+\.\d+/.test(up.current), `updater reports status when running from source (v${up.current})`);
 
 // Settings and script are saved for next time.
 await op.fill('#editor', '# Saved\nThis should persist.');
